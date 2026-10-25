@@ -9,12 +9,11 @@ import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingCrudResource;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.springframework.validation.Errors;
-import org.springframework.validation.MapBindingResult;
+import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Validator;
 import org.springframework.web.client.RestClientException;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,7 +57,7 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	 * delegate.
 	 */
 	protected void validateDelegate(Validator validator, Object delegate, String objectName) {
-		Errors errors = new MapBindingResult(new HashMap<>(), objectName);
+		Errors errors = new BeanPropertyBindingResult(delegate, objectName);
 		validator.validate(delegate, errors);
 		if (errors.hasErrors()) {
 			// the module's validators pass the human-readable text as the error code, so fall back
