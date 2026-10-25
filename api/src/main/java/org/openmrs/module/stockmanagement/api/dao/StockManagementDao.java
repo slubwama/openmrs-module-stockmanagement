@@ -5298,4 +5298,41 @@ public class StockManagementDao extends DaoBase {
 		criteria.add(Restrictions.eq("voided", false));
 		return criteria.list();
 	}
+
+	public StockItemPackagingUomReference saveStockItemPackagingUomReference(StockItemPackagingUomReference stockItemPackagingUomReference) {
+		getSession().saveOrUpdate(stockItemPackagingUomReference);
+		return stockItemPackagingUomReference;
+	}
+
+	public StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid) {
+		return (StockItemPackagingUomReference) getSession().createCriteria(StockItemPackagingUomReference.class)
+		        .add(Restrictions.eq("uuid", uuid)).uniqueResult();
+	}
+
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceByPackagingUom(StockItemPackagingUOM stockItemPackagingUOM) {
+		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
+		criteria.add(Restrictions.eq("stockItemPackagingUOM", stockItemPackagingUOM));
+		criteria.add(Restrictions.eq("voided", false));
+		return criteria.list();
+	}
+
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceBySourceAndCode(StockSource stockSource, String stockReferenceCode) {
+		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
+		criteria.add(Restrictions.eq("referenceSource", stockSource));
+		criteria.add(Restrictions.eq("stockReferenceCode", stockReferenceCode));
+		criteria.add(Restrictions.eq("voided", false));
+		return criteria.list();
+	}
+
+	public void voidStockItemPackagingUomReference(String uuid, String reason, int voidedBy) {
+		DbSession dbSession = getSession();
+		Query query = dbSession
+		        .createQuery("UPDATE stockmanagement.StockItemPackagingUomReference SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid = :uuid");
+		query.setParameter("dateVoided", new Date());
+		//voidedBy maps to a User association, so bind a User reference, not the raw user id
+		query.setParameter("voidedBy", dbSession.load(User.class, voidedBy));
+		query.setParameter("reason", reason);
+		query.setParameter("uuid", uuid);
+		query.executeUpdate();
+	}
 }
