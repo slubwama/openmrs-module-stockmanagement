@@ -8,6 +8,7 @@ import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.Location;
 import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
@@ -36,7 +37,6 @@ import org.openmrs.module.stockmanagement.api.validator.StockOperationDTOValidat
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.springframework.web.client.RestClientException;
-import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -201,7 +201,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			StockOperation stockOperation = getStockManagementService().saveStockOperation(delegate);
 			return getByUniqueId(stockOperation.getUuid());
 		}
-		catch (ResponseException | APIAuthenticationException exception) {
+		catch (ResponseException | APIAuthenticationException | ValidationException exception) {
 			// already a meaningful REST error (e.g. validation, or an authorization failure that
 			// BaseRestController renders as 403); let the framework render it
 			throw exception;

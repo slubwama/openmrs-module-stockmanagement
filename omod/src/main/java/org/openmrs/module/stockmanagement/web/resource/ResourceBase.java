@@ -1,5 +1,6 @@
 package org.openmrs.module.stockmanagement.web.resource;
 
+import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
@@ -7,7 +8,6 @@ import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingCrudResource;
-import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.springframework.validation.Errors;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Validator;
@@ -53,8 +53,8 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	/**
 	 * Runs a DTO validator explicitly: webservices.rest 3.x removed the ValidateUtil.validate call
 	 * from DelegatingCrudResource.create, so the @Handler validators no longer run on REST saves.
-	 * Throws IllegalRequestException carrying the validator's messages when it rejects the
-	 * delegate.
+	 * Throws core's ValidationException carrying the field-keyed errors when it rejects the
+	 * delegate, so webservices.rest 3.2+ answers with the same field-keyed 400 as 3.1 and earlier.
 	 */
 	protected void validateDelegate(Validator validator, Object delegate, String objectName) {
 		Errors errors = new BeanPropertyBindingResult(delegate, objectName);
@@ -66,7 +66,7 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 			        .map(error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : error.getCode())
 			        .map(message1 -> message1 == null ? "Invalid request" : message1)
 			        .collect(Collectors.joining(", "));
-			throw new IllegalRequestException(message);
+			throw new ValidationException(message, errors);
 		}
 	}
 	
@@ -109,6 +109,4 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	protected <E> AlreadyPaged<E> toAlreadyPaged(List<E> result, RequestContext context) {
 		return new AlreadyPaged<E>(context, result, false, (long) result.size());
 	}
-	
 }
-	

@@ -35,7 +35,7 @@ import org.openmrs.module.stockmanagement.api.model.UserRoleScopeOperationType;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
-import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
+import org.openmrs.api.ValidationException;
 
 /**
  * Context-sensitive test that saves through {@link StockOperationResource#save} end to end.
@@ -211,7 +211,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 	public void save_shouldRejectUserWithoutScopeAtTheLocation() {
 		// no user role scope at the destination location: the validator save() runs must reject
 		// the operation instead of silently creating it
-		IllegalRequestException exception = assertThrows(IllegalRequestException.class,
+		ValidationException exception = assertThrows(ValidationException.class,
 		    () -> new StockOperationResource().save(newReceiptDtoWithoutAtLocationUuid()));
 		assertNotNull(exception.getMessage());
 		assertTrue(exception.getMessage().toLowerCase().contains("permission"));

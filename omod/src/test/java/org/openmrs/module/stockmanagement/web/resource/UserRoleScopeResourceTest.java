@@ -26,7 +26,7 @@ import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeDTO;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeLocationDTO;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeOperationTypeDTO;
 import org.openmrs.module.stockmanagement.api.model.StockOperationType;
-import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
+import org.openmrs.api.ValidationException;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -149,8 +149,8 @@ public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest
 
 		try {
 			resource.save(dto);
-			fail("Expected an IllegalRequestException to be thrown");
-		} catch (IllegalRequestException e) {
+			fail("Expected a ValidationException to be thrown");
+		} catch (ValidationException e) {
 			assertNotNull(e.getMessage());
 		}
 	}
