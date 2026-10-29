@@ -104,7 +104,7 @@ public class UserRoleScopeResource extends ResourceBase<UserRoleScopeDTO> {
 	
 	@Override
 	public UserRoleScopeDTO save(UserRoleScopeDTO delegate) {
-		// webservices.rest 3.x removed the ValidateUtil.validate call from
+		// webservices.rest 3.2+ removed the ValidateUtil.validate call from
 		// DelegatingCrudResource.create, so the @Handler validator no longer runs on REST saves;
 		// run it explicitly so a scope without locations or operation types is a 400 instead of
 		// a 201 that grants nothing

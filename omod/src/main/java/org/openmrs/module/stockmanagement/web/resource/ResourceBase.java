@@ -51,8 +51,11 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	}
 	
 	/**
-	 * Runs a DTO validator explicitly: webservices.rest 3.x removed the ValidateUtil.validate call
+	 * Runs a DTO validator explicitly: webservices.rest 3.2+ removed the ValidateUtil.validate call
 	 * from DelegatingCrudResource.create, so the @Handler validators no longer run on REST saves.
+	 * ValidateUtil.validate would still find these validators, but it is skipped when the global
+	 * validation.disable property is set, which would also switch off StockOperationDTOValidator's
+	 * atLocationUuid derivation; calling the validator directly keeps both independent of it.
 	 * Throws core's ValidationException carrying the field-keyed errors when it rejects the
 	 * delegate, so webservices.rest 3.2+ answers with the same field-keyed 400 as 3.1 and earlier.
 	 */

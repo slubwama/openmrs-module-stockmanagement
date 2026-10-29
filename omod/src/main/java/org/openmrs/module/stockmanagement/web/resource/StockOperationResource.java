@@ -221,7 +221,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	}
 
 	/**
-	 * Runs the StockOperationDTOValidator explicitly: webservices.rest 3.x removed the
+	 * Runs the StockOperationDTOValidator explicitly: webservices.rest 3.2+ removed the
 	 * ValidateUtil.validate call from DelegatingCrudResource.create, so the @Handler validator no
 	 * longer runs on REST saves. It derives atLocationUuid for clients that do not send it, and
 	 * enforces the operation type/location permission checks.

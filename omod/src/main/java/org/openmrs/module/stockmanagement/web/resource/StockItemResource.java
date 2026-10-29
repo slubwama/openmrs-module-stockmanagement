@@ -202,7 +202,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 	@Override
 	public StockItemDTO save(StockItemDTO delegate) {
 		try {
-			// webservices.rest 3.x no longer runs the @Handler validator on REST saves
+			// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
 			validateDelegate(new StockItemDTOValidator(), delegate, "stockItemDTO");
 			StockItem stockItem = getStockManagementService().saveStockItem(delegate);
 			return getByUniqueId(stockItem.getUuid());

@@ -158,7 +158,7 @@ public class BatchJobResource extends ResourceBase<BatchJobDTO> {
 	
 	@Override
 	public BatchJobDTO save(BatchJobDTO delegate) {
-		// webservices.rest 3.x no longer runs the @Handler validator on REST saves
+		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
 		validateDelegate(new BatchJobValidator(), delegate, "batchJobDTO");
 		return getStockManagementService().saveBatchJob(delegate);
 	}

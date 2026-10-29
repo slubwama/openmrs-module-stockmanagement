@@ -70,7 +70,7 @@ public class StockItemPackagingUOMResource extends ResourceBase<StockItemPackagi
 	
 	@Override
 	public StockItemPackagingUOMDTO save(StockItemPackagingUOMDTO delegate) {
-		// webservices.rest 3.x no longer runs the @Handler validator on REST saves
+		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
 		validateDelegate(new StockItemPackagingUOMValidator(), delegate, "stockItemPackagingUOMDTO");
 		StockItemPackagingUOM stockItemPackagingUOM = getStockManagementService().saveStockItemPackagingUOM(delegate);
 		return getByUniqueId(stockItemPackagingUOM.getUuid());

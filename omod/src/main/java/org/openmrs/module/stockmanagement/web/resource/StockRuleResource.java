@@ -105,7 +105,7 @@ public class StockRuleResource extends ResourceBase<StockRuleDTO> {
 	
 	@Override
 	public StockRuleDTO save(StockRuleDTO delegate) {
-		// webservices.rest 3.x no longer runs the @Handler validator on REST saves
+		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
 		validateDelegate(new StockRuleValidator(), delegate, "stockRuleDTO");
 		return getStockManagementService().saveStockRule(delegate);
 	}
