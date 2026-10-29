@@ -4851,12 +4851,16 @@ CREATE TRIGGER stockmgmt_location_after_delete
   <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-8">
     <preConditions onFail="MARK_RAN">
       <not>
-        <indexExists indexName="stockmgmt_stock_item_packaging_uom_reference_source_code_pk" />
+        <uniqueConstraintExists tableName="stockmgmt_stock_item_packaging_uom_reference"
+                                constraintName="stockmgmt_stock_item_packaging_uom_reference_source_code_uk" />
       </not>
     </preConditions>
     <comment>
-      Adding unique constraint on stock_reference_code and stock_source_id
+      Unique source/code per reference; voiding suffixes the stored code so the
+      original code is freed for reuse on the same source
     </comment>
-    <addUniqueConstraint columnNames="stock_reference_code, stock_source_id" constraintName="stockmgmt_stock_item_packaging_uom_reference_source_code_pk" tableName="stockmgmt_stock_item_packaging_uom_reference"/>
+    <addUniqueConstraint tableName="stockmgmt_stock_item_packaging_uom_reference"
+                         columnNames="stock_source_id,stock_reference_code"
+                         constraintName="stockmgmt_stock_item_packaging_uom_reference_source_code_uk"/>
   </changeSet>
 </databaseChangeLog>

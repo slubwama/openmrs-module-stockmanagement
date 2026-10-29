@@ -1688,4 +1688,45 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         assertTrue(voidedReference.getVoided());
         assertEquals("test void", voidedReference.getVoidReason());
     }
+
+    @Test
+    public void saveStockItemPackagingUomReference_shouldAllowRecreatingAfterVoid() {
+        StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+
+        stockManagementService.voidStockItemPackagingUomReference(savedReference.getUuid(), "test void",
+            savedReference.getCreator().getUserId());
+        Context.flushSession();
+        Context.clearSession();
+
+        // voiding releases the source/code pair, so a replacement reference can reuse it
+        StockItemPackagingUomReference replacement = new StockItemPackagingUomReference();
+        replacement.setStockItemPackagingUOM(savedReference.getStockItemPackagingUOM());
+        replacement.setReferenceSource(savedReference.getReferenceSource());
+        replacement.setStockReferenceCode("M221680001EP30T");
+        StockItemPackagingUomReference recreated = stockManagementService
+                .saveStockItemPackagingUomReference(replacement);
+        assertNotNull(recreated);
+        assertNotNull(recreated.getUuid());
+    }
+
+    @Test
+    public void saveStockItemPackagingUomReference_shouldRejectDuplicateCodeWhenEditingAnExistingReference() {
+        StockItemPackagingUomReference firstReference = createReferenceForServiceTests();
+
+        StockItemPackagingUomReference secondReference = new StockItemPackagingUomReference();
+        secondReference.setStockItemPackagingUOM(firstReference.getStockItemPackagingUOM());
+        secondReference.setReferenceSource(firstReference.getReferenceSource());
+        secondReference.setStockReferenceCode("OTHER-CODE");
+        secondReference = stockManagementService.saveStockItemPackagingUomReference(secondReference);
+
+        // the duplicate check must run without flushing the pending code edit, or the database
+        // unique constraint rejects it before the service's "already exists" message is raised
+        secondReference.setStockReferenceCode("M221680001EP30T");
+        try {
+            stockManagementService.saveStockItemPackagingUomReference(secondReference);
+            fail("Expected an APIException to be thrown");
+        } catch (APIException e) {
+            assertThat(e.getMessage(), containsString("already exists"));
+        }
+    }
 }

@@ -46,6 +46,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 		String stockItemPackagingUomUuid = context.getParameter("stockItemPackagingUomUuid");
 		if (StringUtils.isNotBlank(stockItemPackagingUomUuid)) {
 			List<StockItemPackagingUomReferenceDTO> referenceDTOS = new ArrayList<>();
+			// an unknown packaging UOM uuid yields an empty result rather than a not-found error
 			for (StockItemPackagingUomReference reference : getStockManagementService()
 			        .getStockItemPackagingUomReferencesByPackagingUom(stockItemPackagingUomUuid)) {
 				referenceDTOS.add(convertToDTO(reference));
@@ -53,12 +54,12 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			return toAlreadyPaged(referenceDTOS, context);
 		}
 
-		String referenceSourceUuid = context.getParameter("referenceSourceUuid");
+		String stockSourceUuid = context.getParameter("stockSourceUuid");
 		String referenceCode = context.getParameter("referenceCode");
-		if (StringUtils.isNotBlank(referenceSourceUuid) && StringUtils.isNotBlank(referenceCode)) {
+		if (StringUtils.isNotBlank(stockSourceUuid) && StringUtils.isNotBlank(referenceCode)) {
 			List<StockItemPackagingUomReferenceDTO> referenceDTOS = new ArrayList<>();
 			for (StockItemPackagingUomReference reference : getStockManagementService()
-			        .getStockItemPackagingUomReferencesBySourceAndCode(referenceSourceUuid, referenceCode)) {
+			        .getStockItemPackagingUomReferencesBySourceAndCode(stockSourceUuid, referenceCode)) {
 				referenceDTOS.add(convertToDTO(reference));
 			}
 			return toAlreadyPaged(referenceDTOS, context);
@@ -94,7 +95,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 	public DelegatingResourceDescription getCreatableProperties() throws ResourceDoesNotSupportOperationException {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
 		description.addProperty("stockItemPackagingUomUuid");
-		description.addProperty("referenceSourceUuid");
+		description.addProperty("stockSourceUuid");
 		description.addProperty("referenceCode");
 		description.addProperty("name");
 		description.addProperty("description");
@@ -119,8 +120,8 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			description.addProperty("referenceCode");
 			description.addProperty("name");
 			description.addProperty("description");
-			description.addProperty("referenceSourceUuid");
-			description.addProperty("referenceSourceName");
+			description.addProperty("stockSourceUuid");
+			description.addProperty("stockSourceName");
 			description.addProperty("stockItemPackagingUomUuid");
 			description.addProperty("voided");
 		}
@@ -136,7 +137,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 		if (rep instanceof RefRepresentation) {
 			description.addProperty("uuid");
 			description.addProperty("referenceCode");
-			description.addProperty("referenceSourceName");
+			description.addProperty("stockSourceName");
 			description.addProperty("stockItemPackagingUomUuid");
 		}
 
@@ -158,13 +159,13 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 		if (rep instanceof DefaultRepresentation || rep instanceof FullRepresentation) {
 			modelImpl.property("uuid", new StringProperty()).property("referenceCode", new StringProperty())
 			        .property("name", new StringProperty()).property("description", new StringProperty())
-			        .property("referenceSourceUuid", new StringProperty()).property("referenceSourceName", new StringProperty())
+			        .property("stockSourceUuid", new StringProperty()).property("stockSourceName", new StringProperty())
 			        .property("stockItemPackagingUomUuid", new StringProperty());
 		}
 
 		if (rep instanceof RefRepresentation) {
 			modelImpl.property("uuid", new StringProperty()).property("referenceCode", new StringProperty())
-			        .property("referenceSourceName", new StringProperty())
+			        .property("stockSourceName", new StringProperty())
 			        .property("stockItemPackagingUomUuid", new StringProperty());
 		}
 

@@ -3522,7 +3522,10 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         stockItemPackagingUomReference
                 .setStockReferenceCode(stockItemPackagingUomReference.getStockReferenceCode().trim());
 
-        // Mirrors the database unique constraint on (stock_source_id, stock_reference_code)
+        // Mirrors the database unique constraint on (stock_source_id, stock_reference_code);
+        // voided rows are excluded because voiding suffixes their stored code, so only active
+        // references collide. The query must not auto-flush the pending edits or the database
+        // constraint fires before this friendly duplicate check runs
         List<StockItemPackagingUomReference> matches = dao.getStockItemPackagingUomReferenceBySourceAndCode(
             stockItemPackagingUomReference.getReferenceSource(), stockItemPackagingUomReference.getStockReferenceCode());
         if (!matches.isEmpty()
@@ -3552,7 +3555,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(String stockItemPackagingUomUuid) {
         StockItemPackagingUOM stockItemPackagingUOM = getStockItemPackagingUOMByUuid(stockItemPackagingUomUuid);
         if (stockItemPackagingUOM == null) {
-            return null;
+            return Collections.emptyList();
         }
         return dao.getStockItemPackagingUomReferenceByPackagingUom(stockItemPackagingUOM);
     }

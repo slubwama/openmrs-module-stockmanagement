@@ -17,6 +17,7 @@ import org.hibernate.criterion.Order;
 import org.hibernate.transform.AliasToBeanResultTransformer;
 import org.hibernate.type.IntegerType;
 import org.openmrs.*;
+import org.openmrs.api.APIException;
 import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
@@ -5318,6 +5319,9 @@ public class StockManagementDao extends DaoBase {
 
 	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceBySourceAndCode(StockSource stockSource, String stockReferenceCode) {
 		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
+		// run without auto-flush so a pending code edit on the checked reference isn't flushed
+		// (and rejected by the database unique constraint) before the duplicate check sees it
+		criteria.setFlushMode(FlushMode.MANUAL);
 		criteria.add(Restrictions.eq("referenceSource", stockSource));
 		criteria.add(Restrictions.eq("stockReferenceCode", stockReferenceCode));
 		criteria.add(Restrictions.eq("voided", false));
@@ -5326,13 +5330,18 @@ public class StockManagementDao extends DaoBase {
 
 	public void voidStockItemPackagingUomReference(String uuid, String reason, int voidedBy) {
 		DbSession dbSession = getSession();
-		Query query = dbSession
-		        .createQuery("UPDATE stockmanagement.StockItemPackagingUomReference SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid = :uuid");
-		query.setParameter("dateVoided", new Date());
+		StockItemPackagingUomReference reference = getStockItemPackagingUomReferenceByUuid(uuid);
+		if (reference == null) {
+			throw new APIException("Stock item packaging UOM reference not found");
+		}
+		reference.setVoided(true);
+		reference.setDateVoided(new Date());
 		//voidedBy maps to a User association, so bind a User reference, not the raw user id
-		query.setParameter("voidedBy", dbSession.load(User.class, voidedBy));
-		query.setParameter("reason", reason);
-		query.setParameter("uuid", uuid);
-		query.executeUpdate();
+		reference.setVoidedBy((User) dbSession.load(User.class, voidedBy));
+		reference.setVoidReason(reason);
+		//the (stock_source_id, stock_reference_code) unique constraint covers voided rows too,
+		//so suffix the stored code to free the original code for reuse on the same source
+		reference.setStockReferenceCode(reference.getStockReferenceCode() + " (voided " + reference.getId() + ")");
+		dbSession.saveOrUpdate(reference);
 	}
 }

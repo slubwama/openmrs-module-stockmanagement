@@ -551,11 +551,13 @@ public interface StockManagementService extends OpenmrsService {
 	List<StockItemReference> getStockItemReferenceByStockItem(String uuid);
 
 	@Transactional
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
+	        Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE }, requireAll = true)
 	StockItemPackagingUomReference saveStockItemPackagingUomReference(StockItemPackagingUomReference stockItemPackagingUomReference);
 
 	@Transactional
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
+	        Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE }, requireAll = true)
 	void voidStockItemPackagingUomReference(String uuid, String reason, Integer userId);
 
 	@Transactional(readOnly = true)

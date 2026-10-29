@@ -2,6 +2,7 @@ package org.openmrs.module.stockmanagement.web.resource;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -16,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.openmrs.Privilege;
 import org.openmrs.Role;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
@@ -81,10 +83,17 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 			privilege = Context.getUserService().savePrivilege(new Privilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
 			        "Able to view and manage stock items"));
 		}
+		Privilege mutatePrivilege = Context.getUserService()
+		        .getPrivilege(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE);
+		if (mutatePrivilege == null) {
+			mutatePrivilege = Context.getUserService().savePrivilege(new Privilege(
+			        Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE, "Able to add, edit and void stock items"));
+		}
 		Role clerk = new Role();
 		clerk.setRole("Stock item clerk");
 		clerk.setDescription("Grants access to stock items");
 		clerk.addPrivilege(privilege);
+		clerk.addPrivilege(mutatePrivilege);
 		Context.getUserService().saveRole(clerk);
 		// the authorization checks run against the user context's cached instance, so grant the
 		// role there; persisting it on the user is unnecessary for these tests and saveUser
@@ -204,11 +213,20 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 	}
 
 	@Test
+	public void doSearch_shouldReturnAnEmptyResultForAnUnknownPackagingUom() throws ResponseException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setParameter("stockItemPackagingUomUuid", "unknown-packaging-uom-uuid");
+		AlreadyPaged<StockItemPackagingUomReferenceDTO> result = (AlreadyPaged<StockItemPackagingUomReferenceDTO>) resource
+		        .doSearch(searchContext(request));
+		assertTrue(result.getPageOfResults().isEmpty());
+	}
+
+	@Test
 	public void doSearch_shouldResolveAPackagingUomBySourceAndCode() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setParameter("referenceSourceUuid", saved.getStockSourceUuid());
+		request.setParameter("stockSourceUuid", saved.getStockSourceUuid());
 		request.setParameter("referenceCode", "M221680001EP30T");
 		AlreadyPaged<StockItemPackagingUomReferenceDTO> result = (AlreadyPaged<StockItemPackagingUomReferenceDTO>) resource
 		        .doSearch(searchContext(request));
@@ -218,7 +236,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 
 		//an unknown code resolves to nothing
 		request = new MockHttpServletRequest();
-		request.setParameter("referenceSourceUuid", saved.getStockSourceUuid());
+		request.setParameter("stockSourceUuid", saved.getStockSourceUuid());
 		request.setParameter("referenceCode", "UNKNOWN-CODE");
 		result = (AlreadyPaged<StockItemPackagingUomReferenceDTO>) resource.doSearch(searchContext(request));
 		assertTrue(result.getPageOfResults().isEmpty());
@@ -235,6 +253,68 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		StockItemPackagingUomReferenceDTO voided = resource.getByUniqueId(saved.getUuid());
 		assertNotNull(voided);
 		assertTrue(voided.isVoided());
+	}
+
+	@Test
+	public void save_shouldAllowRecreatingAReferenceAfterVoidingIt() throws ResponseException {
+		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
+
+		resource.delete(saved, "test void", searchContext(new MockHttpServletRequest()));
+		Context.flushSession();
+		Context.clearSession();
+
+		// voiding must release the source/code pair so a replacement reference can reuse it
+		StockItemPackagingUomReferenceDTO replacement = new StockItemPackagingUomReferenceDTO();
+		replacement.setStockItemPackagingUomUuid(saved.getStockItemPackagingUomUuid());
+		replacement.setStockSourceUuid(saved.getStockSourceUuid());
+		replacement.setReferenceCode("M221680001EP30T");
+		StockItemPackagingUomReferenceDTO recreated = resource.save(replacement);
+		assertNotNull(recreated);
+		assertNotNull(recreated.getUuid());
+		assertNotEquals(saved.getUuid(), recreated.getUuid());
+	}
+
+	@Test
+	public void saveAndDelete_shouldBeRefusedForAUserWithoutTheMutatePrivilege() throws ResponseException {
+		StockItemPackagingUOM packagingUom = createNonVoidedPackagingUom();
+		StockSource stockSource = createNonVoidedStockSource();
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setStockItemPackagingUOM(packagingUom);
+		reference.setReferenceSource(stockSource);
+		reference.setStockReferenceCode("M221680001EP30T");
+		reference = dao().saveStockItemPackagingUomReference(reference);
+		StockItemPackagingUomReferenceDTO dto = resource.convertToDTO(reference);
+
+		// swap the clerk role (which carries the mutate task privilege) for a view-only role, then
+		// restore the original roles so later tests are unaffected
+		Privilege viewPrivilege = Context.getUserService().getPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
+		Role viewer = new Role();
+		viewer.setRole("Stock item viewer");
+		viewer.setDescription("Grants read access to stock items");
+		viewer.addPrivilege(viewPrivilege);
+		Context.getUserService().saveRole(viewer);
+		Set<Role> originalRoles = new HashSet<>(Context.getAuthenticatedUser().getRoles());
+		try {
+			Set<Role> roles = new HashSet<>();
+			roles.add(viewer);
+			Context.getAuthenticatedUser().setRoles(roles);
+
+			try {
+				resource.save(dto);
+				fail("Expected APIAuthenticationException to be thrown");
+			} catch (APIAuthenticationException e) {
+				// expected
+			}
+
+			try {
+				resource.delete(dto, "test void", searchContext(new MockHttpServletRequest()));
+				fail("Expected APIAuthenticationException to be thrown");
+			} catch (APIAuthenticationException e) {
+				// expected
+			}
+		} finally {
+			Context.getAuthenticatedUser().setRoles(originalRoles);
+		}
 	}
 
 	@Test
